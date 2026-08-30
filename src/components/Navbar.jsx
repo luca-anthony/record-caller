@@ -104,3 +104,4 @@ export default function Navbar({ page, setPage }) {
     </div>
   )
 }
+

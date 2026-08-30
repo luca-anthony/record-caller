@@ -21,3 +21,4 @@ export default function useIsMobile() {
 
   return isMobile
 }
+
