@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import Toast from '../components/Toast'
 import ConfirmModal from '../components/ConfirmModal'
 import useIsMobile from '../hooks/useIsMobile'
+import { groupByFormat } from '../lib/collectionUtils'
 
 export default function Dashboard({ session }) {
   const isMobile = useIsMobile()
@@ -145,79 +146,94 @@ export default function Dashboard({ session }) {
             {tab === 'called' ? "Nothing calling yet." : "Nothing blocked yet."}
           </p>
         ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))',
-            gap: isMobile ? '0.85rem' : '1.25rem'
-          }}>
-            {displayed.map(record => (
-              <div key={record.id} style={{
-                background: '#111',
-                border: `1px solid ${record.status === 'called' ? '#2a3a2a' : '#3a2a2a'}`,
-                borderRadius: '3px', overflow: 'hidden',
-                display: 'flex', flexDirection: 'column'
+          groupByFormat(displayed).map(({ format, records }) => (
+            <div key={format} style={{ marginBottom: isMobile ? '1.75rem' : '2.5rem' }}>
+              <h2 style={{
+                fontSize: '0.75rem', fontWeight: 400,
+                letterSpacing: '0.2em', textTransform: 'uppercase',
+                color: '#555', margin: '0 0 0.9rem'
+              }}>{format === 'CD' ? 'CDs' : format === 'Vinyl' ? 'Vinyl' : format === 'Cassette' ? 'Cassettes' : 'Other'} ({records.length})</h2>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))',
+                gap: isMobile ? '0.85rem' : '1.25rem'
               }}>
+                {records.map(record => (
+                  <div key={record.id} style={{
+                    background: '#111',
+                    border: `1px solid ${record.status === 'called' ? '#2a3a2a' : '#3a2a2a'}`,
+                    borderRadius: '3px', overflow: 'hidden',
+                    display: 'flex', flexDirection: 'column'
+                  }}>
 
-                <div style={{ width: '100%', aspectRatio: '1', background: '#1a1a1a', overflow: 'hidden' }}>
-                  {record.cover_url ? (
-                    <img src={record.cover_url} alt={record.title}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <div style={{
-                        width: '50px', height: '50px', borderRadius: '50%',
-                        border: '7px solid #2a2a2a',
-                        boxShadow: 'inset 0 0 0 3px #1a1a1a'
-                      }} />
+                    <div style={{ width: '100%', aspectRatio: '1', background: '#1a1a1a', overflow: 'hidden' }}>
+                      {record.cover_url ? (
+                        <img src={record.cover_url} alt={record.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{
+                            width: '50px', height: '50px', borderRadius: '50%',
+                            border: '7px solid #2a2a2a',
+                            boxShadow: 'inset 0 0 0 3px #1a1a1a'
+                          }} />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                <div style={{ padding: '0.75rem', flex: 1 }}>
-                  <p style={{
-                    fontSize: '0.8rem', color: '#f0ece4',
-                    margin: '0 0 0.25rem', fontWeight: 600, lineHeight: 1.3,
-                    overflow: 'hidden', display: '-webkit-box',
-                    WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
-                  }}>{record.title}</p>
-                  {record.year && <p style={{ fontSize: '0.7rem', color: '#555', margin: '0 0 0.15rem' }}>{record.year}</p>}
-                  {record.label && <p style={{ fontSize: '0.7rem', color: '#555', margin: 0 }}>{record.label}</p>}
-                </div>
+                    <div style={{ padding: '0.75rem', flex: 1 }}>
+                      <p style={{
+                        fontSize: '0.8rem', color: '#f0ece4',
+                        margin: '0 0 0.1rem', fontWeight: 600, lineHeight: 1.3,
+                        overflow: 'hidden', display: '-webkit-box',
+                        WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
+                      }}>{record.title}</p>
+                      {record.artist && (
+                        <p style={{
+                          fontSize: '0.7rem', color: '#7a7a7a', margin: '0 0 0.25rem',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                        }}>{record.artist}</p>
+                      )}
+                      {record.year && <p style={{ fontSize: '0.7rem', color: '#555', margin: '0 0 0.15rem' }}>{record.year}</p>}
+                      {record.label && <p style={{ fontSize: '0.7rem', color: '#555', margin: 0 }}>{record.label}</p>}
+                    </div>
 
-                <div style={{ display: 'flex', borderTop: '1px solid #1e1e1e' }}>
-                  <button
-                    onClick={() => handleAction(record, 'called')}
-                    style={{
-                      flex: 1, padding: '0.6rem',
-                      background: record.status === 'called' ? '#1a2a1a' : 'transparent',
-                      color: record.status === 'called' ? '#7aad7a' : '#555',
-                      border: 'none', borderRight: '1px solid #1e1e1e',
-                      fontSize: '0.7rem', letterSpacing: '0.1em',
-                      textTransform: 'uppercase', fontFamily: 'inherit',
-                      cursor: 'pointer', transition: 'all 0.2s'
-                    }}
-                  >
-                    📞 {record.status === 'called' ? 'Calling...' : 'Call'}
-                  </button>
-                  <button
-                    onClick={() => handleAction(record, 'hung_up')}
-                    style={{
-                      flex: 1, padding: '0.6rem',
-                      background: record.status === 'hung_up' ? '#2a1a1a' : 'transparent',
-                      color: record.status === 'hung_up' ? '#c0392b' : '#555',
-                      border: 'none',
-                      fontSize: '0.7rem', letterSpacing: '0.1em',
-                      textTransform: 'uppercase', fontFamily: 'inherit',
-                      cursor: 'pointer', transition: 'all 0.2s'
-                    }}
-                  >
-                    📵 {record.status === 'hung_up' ? 'Blocked' : 'Hang Up and Block'}
-                  </button>
-                </div>
+                    <div style={{ display: 'flex', borderTop: '1px solid #1e1e1e' }}>
+                      <button
+                        onClick={() => handleAction(record, 'called')}
+                        style={{
+                          flex: 1, padding: '0.6rem',
+                          background: record.status === 'called' ? '#1a2a1a' : 'transparent',
+                          color: record.status === 'called' ? '#7aad7a' : '#555',
+                          border: 'none', borderRight: '1px solid #1e1e1e',
+                          fontSize: '0.7rem', letterSpacing: '0.1em',
+                          textTransform: 'uppercase', fontFamily: 'inherit',
+                          cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                      >
+                        📞 {record.status === 'called' ? 'Calling...' : 'Call'}
+                      </button>
+                      <button
+                        onClick={() => handleAction(record, 'hung_up')}
+                        style={{
+                          flex: 1, padding: '0.6rem',
+                          background: record.status === 'hung_up' ? '#2a1a1a' : 'transparent',
+                          color: record.status === 'hung_up' ? '#c0392b' : '#555',
+                          border: 'none',
+                          fontSize: '0.7rem', letterSpacing: '0.1em',
+                          textTransform: 'uppercase', fontFamily: 'inherit',
+                          cursor: 'pointer', transition: 'all 0.2s'
+                        }}
+                      >
+                        📵 {record.status === 'hung_up' ? 'Blocked' : 'Hang Up and Block'}
+                      </button>
+                    </div>
 
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))
         )}
 
       </div>

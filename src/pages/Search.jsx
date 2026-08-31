@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { searchRecords } from '../lib/discogs'
+import { searchRecords, splitArtistTitle, detectFormat } from '../lib/discogs'
 import { supabase } from '../lib/supabase'
 import Toast from '../components/Toast'
 import useIsMobile from '../hooks/useIsMobile'
+
+const FORMAT_FILTERS = ['All', 'Vinyl', 'CD', 'Cassette']
 
 export default function Search({ session }) {
   const isMobile = useIsMobile()
@@ -11,6 +13,7 @@ export default function Search({ session }) {
   const [loading, setLoading] = useState(false)
   const [toasts, setToasts] = useState([])
   const [collection, setCollection] = useState({})
+  const [formatFilter, setFormatFilter] = useState('All')
   const toastIdRef = useRef(0)
 
   useEffect(() => {
@@ -45,6 +48,8 @@ export default function Search({ session }) {
 
   const handleAction = async (record, action) => {
     const currentStatus = collection[record.id]
+    const { artist, title } = splitArtistTitle(record.title)
+    const format = detectFormat(record.format)
 
     if (currentStatus === action) {
       await supabase
@@ -64,7 +69,9 @@ export default function Search({ session }) {
     const { error } = await supabase.from('collection').upsert({
       user_id: session.user.id,
       discogs_id: record.id,
-      title: record.title,
+      title,
+      artist,
+      format,
       year: record.year || null,
       cover_url: record.cover_image || null,
       label: record.label?.[0] || null,
@@ -73,7 +80,7 @@ export default function Search({ session }) {
 
     if (!error) {
       setCollection(prev => ({ ...prev, [record.id]: action }))
-      addToast(record.title, action)
+      addToast(title, action)
     }
   }
 
@@ -97,7 +104,7 @@ export default function Search({ session }) {
           Find a record — call it to want it, hang up once you have it.
         </p>
 
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', marginBottom: isMobile ? '1.5rem' : '2.5rem' }}>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', marginBottom: isMobile ? '1rem' : '1.5rem' }}>
           <input
             type="text"
             value={query}
@@ -107,7 +114,7 @@ export default function Search({ session }) {
               flex: 1, padding: '0.75rem 1rem',
               background: '#111', border: '1px solid #2a2a2a',
               borderRadius: '2px', color: '#f0ece4',
-              fontSize: '0.95rem', fontFamily: 'inherit', outline: 'none'
+              fontSize: '16px', fontFamily: 'inherit', outline: 'none'
             }}
             onFocus={e => e.target.style.borderColor = '#555'}
             onBlur={e => e.target.style.borderColor = '#2a2a2a'}
@@ -128,13 +135,46 @@ export default function Search({ session }) {
         </form>
 
         {results.length > 0 && (
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: isMobile ? '1.25rem' : '2rem' }}>
+            {FORMAT_FILTERS.map(f => (
+              <button
+                key={f}
+                onClick={() => setFormatFilter(f)}
+                style={{
+                  padding: '0.4rem 0.9rem',
+                  background: formatFilter === f ? '#1a1a1a' : 'transparent',
+                  border: formatFilter === f ? '1px solid #2a2a2a' : '1px solid #1e1e1e',
+                  borderRadius: '2px', color: formatFilter === f ? '#f0ece4' : '#555',
+                  fontSize: '0.7rem', letterSpacing: '0.1em',
+                  textTransform: 'uppercase', fontFamily: 'inherit', cursor: 'pointer'
+                }}
+              >{f}</button>
+            ))}
+          </div>
+        )}
+
+        {results.length > 0 && (() => {
+          const filteredResults = formatFilter === 'All'
+            ? results
+            : results.filter(r => detectFormat(r.format) === formatFilter)
+
+          if (filteredResults.length === 0) {
+            return (
+              <p style={{ color: '#333', textAlign: 'center', marginTop: '3rem', letterSpacing: '0.1em' }}>
+                No {formatFilter.toLowerCase()} results.
+              </p>
+            )
+          }
+
+          return (
           <div style={{
             display: 'grid',
             gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : 'repeat(auto-fill, minmax(180px, 1fr))',
             gap: isMobile ? '0.85rem' : '1.25rem'
           }}>
-            {results.map(record => {
+            {filteredResults.map(record => {
               const status = collection[record.id]
+              const { artist, title } = splitArtistTitle(record.title)
               return (
                 <div key={record.id} style={{
                   background: '#111',
@@ -150,7 +190,7 @@ export default function Search({ session }) {
                     {record.cover_image ? (
                       <img
                         src={record.cover_image}
-                        alt={record.title}
+                        alt={title}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     ) : (
@@ -170,11 +210,18 @@ export default function Search({ session }) {
                   <div style={{ padding: '0.75rem', flex: 1 }}>
                     <p style={{
                       fontSize: '0.82rem', color: '#f0ece4',
-                      margin: '0 0 0.3rem', fontWeight: 600,
+                      margin: '0 0 0.15rem', fontWeight: 600,
                       lineHeight: 1.3,
                       overflow: 'hidden', display: '-webkit-box',
                       WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
-                    }}>{record.title}</p>
+                    }}>{title}</p>
+                    {artist && (
+                      <p style={{
+                        fontSize: '0.72rem', color: '#7a7a7a',
+                        margin: '0 0 0.3rem', lineHeight: 1.3,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                      }}>{artist}</p>
+                    )}
                     {record.year && (
                       <p style={{ fontSize: '0.72rem', color: '#555', margin: '0 0 0.2rem' }}>{record.year}</p>
                     )}
@@ -218,7 +265,8 @@ export default function Search({ session }) {
               )
             })}
           </div>
-        )}
+          )
+        })()}
 
         {!loading && results.length === 0 && query && (
           <p style={{ color: '#333', textAlign: 'center', marginTop: '3rem', letterSpacing: '0.1em' }}>
