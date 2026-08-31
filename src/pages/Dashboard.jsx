@@ -112,7 +112,7 @@ export default function Dashboard({ session }) {
             fontSize: '0.65rem', letterSpacing: '0.15em',
             color: '#2a2a2a', textTransform: 'uppercase',
             fontFamily: "'Georgia', serif", marginTop: '0.2rem'
-          }}>v4.8.5</span>
+          }}>v5.1.4</span>
         </div>
 
         {/* Tabs */}
