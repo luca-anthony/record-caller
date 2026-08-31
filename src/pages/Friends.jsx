@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import useIsMobile from '../hooks/useIsMobile'
-import { groupByFormat } from '../lib/collectionUtils'
 
 export default function Friends({ session }) {
   const isMobile = useIsMobile()
@@ -222,58 +221,43 @@ export default function Friends({ session }) {
               Nothing here yet.
             </p>
           ) : (
-            groupByFormat(displayed).map(({ format, records }) => (
-              <div key={format} style={{ marginBottom: isMobile ? '1.75rem' : '2.5rem' }}>
-                <h2 style={{
-                  fontSize: '0.75rem', fontWeight: 400,
-                  letterSpacing: '0.2em', textTransform: 'uppercase',
-                  color: '#555', margin: '0 0 0.9rem'
-                }}>{format === 'CD' ? 'CDs' : format === 'Vinyl' ? 'Vinyl' : format === 'Cassette' ? 'Cassettes' : 'Other'} ({records.length})</h2>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))',
-                  gap: isMobile ? '0.85rem' : '1.25rem'
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? 'repeat(auto-fill, minmax(130px, 1fr))' : 'repeat(auto-fill, minmax(160px, 1fr))',
+              gap: isMobile ? '0.85rem' : '1.25rem'
+            }}>
+              {displayed.map(record => (
+                <div key={record.id} style={{
+                  background: '#111',
+                  border: `1px solid ${record.status === 'called' ? '#2a3a2a' : '#3a2a2a'}`,
+                  borderRadius: '3px', overflow: 'hidden'
                 }}>
-                  {records.map(record => (
-                    <div key={record.id} style={{
-                      background: '#111',
-                      border: `1px solid ${record.status === 'called' ? '#2a3a2a' : '#3a2a2a'}`,
-                      borderRadius: '3px', overflow: 'hidden'
-                    }}>
-                      <div style={{ width: '100%', aspectRatio: '1', background: '#1a1a1a', overflow: 'hidden' }}>
-                        {record.cover_url ? (
-                          <img src={record.cover_url} alt={record.title}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{
-                              width: '50px', height: '50px', borderRadius: '50%',
-                              border: '7px solid #2a2a2a', boxShadow: 'inset 0 0 0 3px #1a1a1a'
-                            }} />
-                          </div>
-                        )}
+                  <div style={{ width: '100%', aspectRatio: '1', background: '#1a1a1a', overflow: 'hidden' }}>
+                    {record.cover_url ? (
+                      <img src={record.cover_url} alt={record.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{
+                          width: '50px', height: '50px', borderRadius: '50%',
+                          border: '7px solid #2a2a2a', boxShadow: 'inset 0 0 0 3px #1a1a1a'
+                        }} />
                       </div>
-                      <div style={{ padding: '0.75rem' }}>
-                        <p style={{
-                          fontSize: '0.8rem', color: '#f0ece4',
-                          margin: '0 0 0.1rem', fontWeight: 600, lineHeight: 1.3,
-                          overflow: 'hidden', display: '-webkit-box',
-                          WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
-                        }}>{record.title}</p>
-                        {record.artist && (
-                          <p style={{
-                            fontSize: '0.7rem', color: '#7a7a7a', margin: '0 0 0.25rem',
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                          }}>{record.artist}</p>
-                        )}
-                        {record.year && <p style={{ fontSize: '0.7rem', color: '#555', margin: '0 0 0.15rem' }}>{record.year}</p>}
-                        {record.label && <p style={{ fontSize: '0.7rem', color: '#555', margin: 0 }}>{record.label}</p>}
-                      </div>
-                    </div>
-                  ))}
+                    )}
+                  </div>
+                  <div style={{ padding: '0.75rem' }}>
+                    <p style={{
+                      fontSize: '0.8rem', color: '#f0ece4',
+                      margin: '0 0 0.25rem', fontWeight: 600, lineHeight: 1.3,
+                      overflow: 'hidden', display: '-webkit-box',
+                      WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
+                    }}>{record.title}</p>
+                    {record.year && <p style={{ fontSize: '0.7rem', color: '#555', margin: '0 0 0.15rem' }}>{record.year}</p>}
+                    {record.label && <p style={{ fontSize: '0.7rem', color: '#555', margin: 0 }}>{record.label}</p>}
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </div>
